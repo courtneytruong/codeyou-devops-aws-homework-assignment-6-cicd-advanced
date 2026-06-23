@@ -1,4 +1,4 @@
-name: "Develop pipeline for RUUUUUUUuuuby"
+name: "Develop Pipeline"
 
 on:
   push:
@@ -19,28 +19,29 @@ jobs:
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.1'
-      
+          ruby-version: "3.1"
+
       - name: Install Dependencies
         run: bundle install
 
-      - name: Lynter
-        run: gem install rubocop && bundle exec rubocop
+      - name: Lint and Style Check
+        run: bundle exec rubocop
 
-      - name: Scan for Vulns
+      - name: Scan for Vulnerabilities
         run: gem install bundler-audit && bundler-audit update && bundler-audit check
 
-      - name: Run unit tests
+      - name: Run Unit Tests
         run: bundle exec rspec
 
       - name: Build Image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/ruby-app:${{ github.ref_name }} -t ${{ secrets.DOCKER_USERNAME }}/ruby-app:${{ github.ref_name }}-$(git rev-parse --short HEAD)
+          docker build \
+            -t ${{ env.DOCKER_USERNAME }}/ruby-app:develop \
+            -t ${{ env.DOCKER_USERNAME }}/ruby-app:${{ github.ref_name }}-$(git rev-parse --short HEAD) \
+            .
 
       - name: Push Docker Image
         run: |
-          echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-          docker push ${{ secrets.DOCKER_USERNAME }}/ruby-app:${{ github.ref_name }} ${{ secrets.DOCKER_USERNAME }}/ruby-app:${{ github.ref_name }}-$(git rev-parse --short HEAD)
-
-      
-      
+          echo ${{ env.DOCKER_PASSWORD }} | docker login -u ${{ env.DOCKER_USERNAME }} --password-stdin
+          docker push ${{ env.DOCKER_USERNAME }}/ruby-app:develop
+          docker push ${{ env.DOCKER_USERNAME }}/ruby-app:${{ github.ref_name }}-$(git rev-parse --short HEAD)

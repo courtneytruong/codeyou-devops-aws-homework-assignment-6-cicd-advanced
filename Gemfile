@@ -2,7 +2,7 @@
 
 source 'https://rubygems.org'
 
-gem 'loofah', '2.19.1'
+gem 'loofah'
 gem 'puma'
 gem 'rack'
 gem 'rackup'

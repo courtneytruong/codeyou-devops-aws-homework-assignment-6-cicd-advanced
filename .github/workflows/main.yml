@@ -1,9 +1,13 @@
-name: "All Your Pipelines Are Belong To Us"
+name: "Main Pipeline"
 
 on:
   push:
     branches:
       - main
+
+env:
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
 jobs:
   lint:
@@ -15,17 +19,31 @@ jobs:
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.1'
+          ruby-version: "3.1"
+
+      - name: Install Dependencies
+        run: bundle install
+
+      - name: Lint and Style Check
+        run: bundle exec rubocop
+
+      - name: Scan for Vulnerabilities
+        run: gem install bundler-audit && bundler-audit update && bundler-audit check
+
+      - name: Run Unit Tests
+        run: bundle exec rspec
 
       - name: Build Image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/ruby-app:${{ github.ref_name }}-$(git rev-parse --short HEAD) ${{ secrets.DOCKER_USERNAME }}/ruby-app:${{ github.ref_name }}
+          docker build \
+            -t ${{ env.DOCKER_USERNAME }}/ruby-app:latest \
+            -t ${{ env.DOCKER_USERNAME }}/ruby-app:${{ github.ref_name }} \
+            -t ${{ env.DOCKER_USERNAME }}/ruby-app:${{ github.ref_name }}-$(git rev-parse --short HEAD) \
+            .
 
       - name: Push Docker Image
         run: |
-          echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-          docker push ${{ secrets.DOCKER_USERNAME }}/ruby-app:${{ github.ref_name }}-$(git rev-parse --short HEAD) ${{ secrets.DOCKER_USERNAME }}/ruby-app:${{ github.ref_name }} 
-
-
-      
-      
+          echo ${{ env.DOCKER_PASSWORD }} | docker login -u ${{ env.DOCKER_USERNAME }} --password-stdin
+          docker push ${{ env.DOCKER_USERNAME }}/ruby-app:latest
+          docker push ${{ env.DOCKER_USERNAME }}/ruby-app:${{ github.ref_name }}
+          docker push ${{ env.DOCKER_USERNAME }}/ruby-app:${{ github.ref_name }}-$(git rev-parse --short HEAD)
